@@ -10,6 +10,17 @@ def epsilon_greed_selection(env, epsilon):
         action = idx_max
     return action
 
+def UCB_selection(env):
+    # calculation for UCB method
+
+    action=np.argmax(env.X_UCB)
+    print('Means j:', env.mean_Nj)
+    print('UCB= ',env.X_UCB,' choosen= ',action)
+    return action
+
+
+
+
 def update_mean(old_mean,new_reward,Nj_index):
     mean=old_mean
     x=new_reward
@@ -74,6 +85,14 @@ class bandits:
         N=self.iteration+1
         self.mean_total=update_mean(self.mean_total,reward,N)
 
+        #calculations for UCB
+        print('X_UCB[self.j]',self.X_UCB[self.j])
+        print('self.mean_Nj[self.j]',self.mean_Nj[self.j])
+        print('N=',N)
+        print(' self.Nj[self.j]=',  self.Nj[self.j])
+        print('np.sqrt(2 * np.log(N) / self.Nj[self.j]',np.sqrt(2 * np.log(N) / self.Nj[self.j]))
+
+        self.X_UCB[self.j] = self.mean_Nj[self.j] + np.sqrt(2 * np.log(N) / self.Nj[self.j])
 
         #update history of machine choosing
         self.history[self.iteration]=self.j
@@ -84,7 +103,7 @@ class bandits:
 
 #######################   MAIN #################################################
 
-N=10000
+N=2000
 epsilon=0.10
 
 env=bandits() #environment initialization
@@ -92,7 +111,8 @@ env=bandits() #environment initialization
 env.create(number_of_iterations=N) #create machines prepared for N iterations
 
 for i in range(N):
-    action=epsilon_greed_selection(env,epsilon)
+    #action=epsilon_greed_selection(env,epsilon)
+    action=UCB_selection(env)
     reward=env.pull(machine_number=action)
     #print('Reward from ',i, 'iteration is:', reward)
 
