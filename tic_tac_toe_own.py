@@ -1,3 +1,7 @@
+#https://www.youtube.com/watch?v=2pWv7GOvuf0&list=PLqYmG7hTraZDM-OYHWgPebj2MfCFzFObQ
+#https://www.youtube.com/watch?v=ISk80iLhdfU&list=PLqYmG7hTraZDNJre23vqCGIVpfZ_K2RZs&index=4
+
+
 from __future__ import print_function,division
 from builtins import range, input
 
