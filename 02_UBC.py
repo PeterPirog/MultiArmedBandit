@@ -1,25 +1,10 @@
 import numpy as np
 
-def epsilon_greed_selection(env, epsilon):
-    means=env.mean_Nj
-    idx_max=np.argmax(means)
-
-    if np.random.random_sample() <= epsilon: #explore option
-        action=np.random.randint(env.K)
-    else:   #exploit option
-        action = idx_max
-    return action
-
 def UCB_selection(env):
     # calculation for UCB method
-
     action=np.argmax(env.X_UCB)
-    print('Means j:', env.mean_Nj)
-    print('UCB= ',env.X_UCB,' choosen= ',action)
+    #print(' choosen action= ',action)
     return action
-
-
-
 
 def update_mean(old_mean,new_reward,Nj_index):
     mean=old_mean
@@ -30,7 +15,7 @@ def update_mean(old_mean,new_reward,Nj_index):
 
 class bandits:
     def __init__(self):
-        probabililty=[0.1,0.3,0.5]
+        probabililty=[0.49,0.5,0.51,0.3]
         rewards_default=[1,1,1]
         self.probability=np.array(probabililty)
         self.rewards_default=rewards_default
@@ -45,11 +30,9 @@ class bandits:
         self.N=[]
 
         # mean for j- machine
-        #self.mean_Nj=np.zeros(self.K)  # <--------- line for epsilon greed with initial 0  means value
-        self.mean_Nj =np.ones(self.K)*10 # <--------- line for epsilon greed with initial high value
-
+        self.mean_Nj=np.zeros(self.K)  # <--------- initial mean
         self.mean_total=0
-        self.j=np.random.randint(self.K) # active machine choseen randomly
+        self.j=np.random.randint(self.K) # active machine choosen randomly
         self.iteration=0
         self.X_UCB=self.mean_Nj
 
@@ -86,45 +69,48 @@ class bandits:
         self.mean_total=update_mean(self.mean_total,reward,N)
 
         #calculations for UCB
-        print('X_UCB[self.j]',self.X_UCB[self.j])
-        print('self.mean_Nj[self.j]',self.mean_Nj[self.j])
-        print('N=',N)
-        print(' self.Nj[self.j]=',  self.Nj[self.j])
-        print('np.sqrt(2 * np.log(N) / self.Nj[self.j]',np.sqrt(2 * np.log(N) / self.Nj[self.j]))
-
-        self.X_UCB[self.j] = self.mean_Nj[self.j] + np.sqrt(2 * np.log(N) / self.Nj[self.j])
+        Nj=self.Nj
+        Nj[Nj==0]=1 # correction to prevent division by 0
+        self.X_UCB = self.mean_Nj + np.sqrt(2 * np.log(N) / Nj)
+        if False:    #set value as True to show debuging commands
+            print('-------------------------------------')
+            print('N=', N)
+            print('reward=',reward)
+            print(' self.Nj=', self.Nj)
+            print('Corrected Nj=',Nj)
+            print('self.mean_Nj', self.mean_Nj)
+            print('np.sqrt(2 * np.log(N) /Nj', np.sqrt(2 * np.log(N) /Nj))
+            print('X_UCB', self.X_UCB,'\n \n')
 
         #update history of machine choosing
         self.history[self.iteration]=self.j
         self.iteration+=1
-
-
         return reward
 
 #######################   MAIN #################################################
 
-N=2000
-epsilon=0.10
-
+N=10000
 env=bandits() #environment initialization
-
 env.create(number_of_iterations=N) #create machines prepared for N iterations
 
+print('\n \n EXPERIMENT:')
+print('Number of iterations=', env.N)
+print('Number of machines=', env.K)
+print('Machines probabilities=', env.probability)
+print('Reward set for j-machine=', env.rewards_default)
+print('Algorithm UCB1')
+
 for i in range(N):
-    #action=epsilon_greed_selection(env,epsilon)
     action=UCB_selection(env)
     reward=env.pull(machine_number=action)
-    #print('Reward from ',i, 'iteration is:', reward)
 
-print('\n \n')
-print('Number of iterations=', env.N)
+print('\n \n SUMMARY:')
 print('Total reward from experiment=', env.reward_total)
 print('Rewards from j-machine=', env.rewards_Nj_total)
-print('Usage of j-machine=', env.Nj)
+print('Usage of j-machine=', env.Nj,'times, in percents',100*env.Nj/env.N,'%')
 print('History of machines usage=', env.history)
 print('Means for j-machine=', env.mean_Nj)
-print('Mean total=', env.mean_total)
+print('Mean after experiment =', env.mean_total,', in percents % of maximum possible mean',100*env.mean_total/np.max(env.probability))
 
 
 
-#print(env.N)
