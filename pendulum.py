@@ -30,7 +30,7 @@ class Agent:
 
     def get_first_observation(self,obs):
         self.obs=obs
-        print('First state=', self.obs)
+        #print('First state=', self.obs)
         self.states.append(self.obs)
 
     def action(self):
@@ -57,9 +57,10 @@ class Agent:
         self.states.append(self.obs)
         self.rewards.append(self.reward)
 
-        self.store_epoch_data()
+
 
         if self.done: #go to next epoch
+            self.store_epoch_data()
             self.calculate_V_values()
             self.prepare_keras_data()
             self.epoch+=1
@@ -73,6 +74,7 @@ class Agent:
         self.np_actions=np.asarray(self.actions)
         self.np_states=np.asarray(self.states)
         self.np_V_values=np.zeros(self.states_stored)
+
 
     def calculate_V_values(self):
         Agent.np_V_values = np.zeros(Agent.states_stored)
@@ -88,7 +90,7 @@ class Agent:
         self.data_states_and_actions=np.hstack((a, b)) #merge matrixes
         #self.data_states_and_actions=np.transpose(self.data_states_and_actions) #data transposition
 
-        print('self.data_states_and_actions shape', self.data_states_and_actions.shape)
+        #print('self.data_states_and_actions shape', self.data_states_and_actions.shape)
         #preparing Q_values data
         self.data_Q_values=self.np_V_values[1:] #you dont need to predict Q value for first state
         self.data_Q_values= np.reshape(self.data_Q_values,(Agent.states_stored - 1,1)) #reshape to 2 dimensional matrix
@@ -97,33 +99,57 @@ class Agent:
         #preparing V_values data
         self.data_V_values=np.transpose(self.np_V_values)
 
+        #reseting values stored for epoch
+        self.states=[]
+        self.rewards=[]
+        self.actions=[]
+        self.np_V_values=[]
+        self.np_rewards=[]
+        self.np_states=[]
+        self.np_actions=[]
+
+
     ############################################################
 env=gym.make("CartPole-v0")
 Agent=Agent()
 Agent.run(env)
-episodes=100
-iterations=50
+episodes=10000
+iterations=100
+
+try:
+    model = load_model('partly_trained.h5')
+except:
+    input_1 = keras.layers.Input(shape=(5,))
+    b = keras.layers.Dense(10)(input_1)
+    b = keras.layers.Dense(1)(b)
+    model = keras.models.Model(inputs=input_1, outputs=b)
+    model.compile(optimizer=tf.keras.optimizers.Adam(0.01),
+                  loss='mse',  # mean squared error
+                  metrics=['mae'])  # mean absolute error
 
 for epoch in range(episodes):
+    print('Epoch=',epoch)
     obs = env.reset()
     Agent.get_first_observation(obs) #all data are stored in agent structure
+
+
+
     for i in range(iterations):
         action=Agent.action()
         result=env.step(action)
         Agent.read_env_response(result)
 
-
-
-
-
-
-
-
-
         #env.render()
         if Agent.done:
             #print('Finished in iteration=',i)
             break
+
+    X = Agent.data_states_and_actions
+    Y = Agent.data_Q_values
+    model.fit(x=X, y=Y, epochs=10,verbose=False)
+    #Save partly trained model
+model.save('partly_trained.h5')
+del model
 
 
 #rint('Agent.states=',Agent.states)
@@ -137,17 +163,31 @@ for epoch in range(episodes):
 #print("numpy actions stored",Agent.np_actions)
 #print("numpy states stored",Agent.np_states)
 #print("numpyV values stored",Agent.np_V_values)
+model = keras.models.load_model('partly_trained.h5')
 
+stat_act0=np.array([ 0.03752226, -0.04894539,  0.01365395, -0.02933582,0])
+stat_act0=np.transpose(stat_act0).reshape((5,1))
 
+stat_act0=Agent.data_states_and_actions
+print('stat_act0=',np.shape(stat_act0))
+#stat_act1=np.array([ 0.03752226, -0.04894539,  0.01365395, -0.02933582,1])
+#stat_act1=np.transpose(stat_act1).reshape((5,1))
+#print('stat_act1=',np.shape(stat_act1))
 
+print('prediction=',model.predict(stat_act0))
+#model.predict(stat_act1)
 
+# Evaluate the model on the test data using `evaluate`
+print('\n# Evaluate on test data')
+results = model.evaluate(Agent.data_states_and_actions, Agent.data_Q_values)
+print('test loss, test acc:', results)
 
 
 
 #print('Reward values=',Agent.rewards)
 #print('V values=',Agent.np_V_values)
 #print('data states_actions',Agent.data_states_and_actions)
-print('data Q values' ,Agent.data_Q_values)
+#print('data Q values' ,Agent.data_Q_values)
 
 #from keras.models import Model
 #from keras.layers import Input, Dense
@@ -157,16 +197,16 @@ print('data Q values' ,Agent.data_Q_values)
 X=Agent.data_states_and_actions
 Y=Agent.data_Q_values
 
-print('Agent.data_states_and_actions=',Agent.data_states_and_actions.shape)
-print('Agent.data_Q_values=',Agent.data_Q_values.shape)
+#print('Agent.data_states_and_actions=',Agent.data_states_and_actions.shape)
+#print('Agent.data_Q_values=',Agent.data_Q_values.shape)
 
-input_1 = keras.layers.Input(shape=(5,))
-b = keras.layers.Dense(10)(input_1)
-b=keras.layers.Dense(1)(b)
-model = keras.models.Model(inputs=input_1, outputs=b)
-model.compile(optimizer=tf.keras.optimizers.Adam(0.01),
-              loss='mse',       # mean squared error
-              metrics=['mae'])  # mean absolute error
+#input_1 = keras.layers.Input(shape=(5,))
+#b = keras.layers.Dense(10)(input_1)
+#b=keras.layers.Dense(1)(b)
+#model = keras.models.Model(inputs=input_1, outputs=b)
+#model.compile(optimizer=tf.keras.optimizers.Adam(0.01),
+      #        loss='mse',       # mean squared error
+     #         metrics=['mae'])  # mean absolute error
 
 
-model.fit(x=X,y=Y,epochs=10)
+#model.fit(x=X,y=Y,epochs=10)
